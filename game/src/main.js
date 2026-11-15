@@ -11,6 +11,8 @@ import { WEAPONS, tryFire, startReload, stepWeapon, throwGrenade, buy, buyGrenad
 import { stepBots, botHear } from './bots.js';
 import { stepRounds, resetForRound } from './rounds.js';
 import { createHud } from './hud.js';
+import { createCompass } from './compass.js';
+import { createMuzzleFlash } from './muzzle.js';
 import { createAudio } from './audio.js';
 import { createFx } from './fx.js';
 import { buildTextures } from './textures.js';
@@ -208,6 +210,8 @@ const SEED = params.get('seed') ? (parseInt(params.get('seed'), 10) >>> 0) : 0x5
 const state = createState(SEED);
 state.shotMode = shotMode;
 const hud = createHud(document);
+const compass = createCompass(document, 'compass');
+const muzzle = createMuzzleFlash(camera);
 const me = state.actors[4]; // the human plays a Raider
 
 function startMatch() {
@@ -316,6 +320,7 @@ function dispatchEvents() {
     const e = state.events[i];
     switch (e.type) {
       case 'shot': {
+        muzzle.fire();
         const a = state.actors[e.a];
         const d = Math.hypot(a.pos.x - me.pos.x, a.pos.z - me.pos.z);
         audio.shot(a.weapon, d);
@@ -468,6 +473,8 @@ function frame(now) {
     fx.tracer(-9.0, 1.35, -4.0, -11.6, 1.45, -1.6);
     fx.puff(-9.05, 1.4, -3.95, false);
   }
+  muzzle.step(shotMode ? 0 : dt);
+  compass.update(me.yaw);
   fx.step(shotMode ? 0 : dt, camera);
   syncScene();
   renderer.render(scene, camera);
@@ -535,6 +542,7 @@ function runShotMode(mode) {
   const ticks = setup();
   for (let i = 0; i < ticks; i++) tick();
   applyShot();
+  if (mode === 'play' || mode === 'bomb') muzzle.hold();
   return ticks;
 }
 
